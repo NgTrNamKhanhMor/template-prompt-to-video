@@ -8,6 +8,10 @@ on:
       headline:
         description: 'News headline'
         required: true
+      story_name:
+        description: 'The name of your timeline (e.g., news)'
+        default: 'news'
+        required: true
 
 jobs:
   render:
@@ -33,7 +37,14 @@ jobs:
         run: edge-tts --text "${{ github.event.inputs.script }}" --write-media public/audio.mp3
 
       - name: 6. Render Video
-        run: npx remotion render Main public/video.mp4 --props='{"headline": "${{ github.event.inputs.headline }}"}'
+        run: >
+          npx remotion render 
+          ${{ github.event.inputs.story_name }} 
+          public/video.mp4 
+          --props="{\"headline\": \"${{ github.event.inputs.headline }}\"}"
 
       - name: 7. Telegram Upload
-        run: curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" -F "video=@public/video.mp4" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
+        run: |
+          curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -F "video=@public/video.mp4" \
+          "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
