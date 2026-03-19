@@ -30,18 +30,23 @@ jobs:
           npm install
           pip install edge-tts
 
-      - name: 4. Prep folders and Generate JSON
+     - name: 4. Prep folders and Generate JSON
         run: |
-          # 1. Create the folder dynamically
+          # 1. Create the folder structure
           mkdir -p "public/content/${{ github.event.inputs.story_name }}"
           
-          # 2. Create a basic timeline.json that Remotion expects
-          # We use a 'cat' command to write the file
+          # 2. Create a valid timeline.json with the 'elements' key
           cat <<EOF > "public/content/${{ github.event.inputs.story_name }}/timeline.json"
           {
             "storyName": "${{ github.event.inputs.story_name }}",
-            "headline": "${{ github.event.inputs.headline }}",
-            "script": "${{ github.event.inputs.script }}"
+            "elements": [
+              {
+                "type": "text",
+                "text": "${{ github.event.inputs.headline }}",
+                "startMs": 0,
+                "endMs": 5000
+              }
+            ]
           }
           EOF
 
@@ -49,7 +54,6 @@ jobs:
         run: |
           edge-tts --text "${{ github.event.inputs.script }}" \
           --write-media "public/content/${{ github.event.inputs.story_name }}/audio.mp3"
-
       - name: 6. Render Video
         run: >
           npx remotion render 
