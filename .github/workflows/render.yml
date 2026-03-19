@@ -10,7 +10,7 @@ on:
         required: true
       story_name:
         description: 'The name of your timeline folder'
-        default: 'history-of-venus'
+        default: 'news-render'
         required: true
 
 jobs:
@@ -27,13 +27,24 @@ jobs:
 
       - name: 3. Install Dependencies
         run: |
-          npm install
+          npm install --package-lock=false
           pip install edge-tts
 
-      - name: 4. Create Story Directory
-        run: mkdir -p "public/content/${{ github.event.inputs.story_name }}"
+      - name: 4. Create Service-Style Directory Structure
+        run: |
+          # The service creates a content/ folder with images subfolder
+          mkdir -p "public/content/${{ github.event.inputs.story_name }}/images"
+          
+          # Since we don't have DALL-E running in the Action, 
+          # we use your subway video as the placeholder image/video
+          if [ -f "public/subway" ]; then
+            cp "public/subway" "public/content/${{ github.event.inputs.story_name }}/images/subway.mp4"
+          else
+            # Fallback if the file is named subway.mp4
+            cp "public/subway.mp4" "public/content/${{ github.event.inputs.story_name }}/images/subway.mp4" || echo "Subway file not found"
+          fi
 
-      - name: 5. Generate Mock Timeline JSON
+      - name: 5. Generate JSON Matching Your Service Schema
         run: |
           echo '{
             "storyName": "${{ github.event.inputs.story_name }}",
@@ -43,38 +54,36 @@ jobs:
                 "type": "video",
                 "imageName": "subway.mp4",
                 "startMs": 0,
-                "endMs": 5000
+                "endMs": 10000
               }
             ],
             "text": [
               {
                 "text": "${{ github.event.inputs.headline }}",
                 "startMs": 0,
-                "endMs": 5000
+                "endMs": 10000
               }
             ],
             "audio": [
               {
                 "audioUrl": "audio.mp3",
                 "startMs": 0,
-                "endMs": 5000
+                "endMs": 10000
               }
             ]
           }' > "public/content/${{ github.event.inputs.story_name }}/timeline.json"
 
-      - name: 6. Generate Audio with Edge-TTS
+      - name: 6. Generate Audio (Edge-TTS)
         run: |
           edge-tts --text "${{ github.event.inputs.script }}" \
           --write-media "public/content/${{ github.event.inputs.story_name }}/audio.mp3"
 
-      - name: 7. Render Video with Remotion
-        # We use the story_name input as the Composition ID
+      - name: 7. Render Video
         run: |
           npx remotion render "${{ github.event.inputs.story_name }}" public/video.mp4 \
           --props="{\"headline\": \"${{ github.event.inputs.headline }}\"}"
 
       - name: 8. Upload to Telegram
-        if: success()
         run: |
           curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
           -F "video=@public/video.mp4" \
