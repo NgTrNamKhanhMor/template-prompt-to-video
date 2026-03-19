@@ -33,11 +33,7 @@ jobs:
         run: edge-tts --text "${{ github.event.inputs.script }}" --write-media public/audio.mp3
 
       - name: 6. Render Video
-        # Check your Root.tsx: If ID is not "Main", change it here!
         run: npx remotion render Main public/video.mp4 --props='{"headline": "${{ github.event.inputs.headline }}"}'
 
       - name: 7. Telegram Upload
-        run: |
-          curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-          -F "video=@public/video.mp4" \
-          "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
+        run: curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" -F "video=@public/video.mp4" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
