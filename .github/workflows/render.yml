@@ -34,14 +34,28 @@ jobs:
         run: mkdir -p "public/content/${{ github.event.inputs.story_name }}"
 
       - name: 5. Generate Mock Timeline JSON
-        # This prevents the "Cannot read properties of undefined (reading 'sort')" error
         run: |
           echo '{
             "storyName": "${{ github.event.inputs.story_name }}",
+            "shortTitle": "${{ github.event.inputs.headline }}",
             "elements": [
               {
                 "type": "text",
                 "text": "${{ github.event.inputs.headline }}",
+                "startMs": 0,
+                "endMs": 5000
+              }
+            ],
+            "text": [
+              {
+                "text": "${{ github.event.inputs.headline }}",
+                "startMs": 0,
+                "endMs": 5000
+              }
+            ],
+            "audio": [
+              {
+                "audioUrl": "audio.mp3",
                 "startMs": 0,
                 "endMs": 5000
               }
