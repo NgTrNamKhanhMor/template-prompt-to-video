@@ -1,24 +1,41 @@
+name: Render Brain Rot Video
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'The brain rot script'
+        required: true
+      headline:
+        description: 'News headline'
+        required: true
+      story_name:
+        description: 'The name of your timeline folder'
+        default: 'history-of-venus'
+        required: true
+
 jobs:
   render:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Checkout
+      - name: 1. Checkout Repository
         uses: actions/checkout@v4
 
-      - name: 2. Setup Node
+      - name: 2. Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
-      - name: 3. Install deps
+      - name: 3. Install Dependencies
         run: |
           npm install
           pip install edge-tts
 
-      - name: 4. Create Directory
+      - name: 4. Create Story Directory
         run: mkdir -p "public/content/${{ github.event.inputs.story_name }}"
 
-      - name: 5. Generate JSON
+      - name: 5. Generate Mock Timeline JSON
+        # This prevents the "Cannot read properties of undefined (reading 'sort')" error
         run: |
           echo '{
             "storyName": "${{ github.event.inputs.story_name }}",
@@ -32,11 +49,20 @@ jobs:
             ]
           }' > "public/content/${{ github.event.inputs.story_name }}/timeline.json"
 
-      - name: 6. Generate Audio
-        run: edge-tts --text "${{ github.event.inputs.script }}" --write-media "public/content/${{ github.event.inputs.story_name }}/audio.mp3"
+      - name: 6. Generate Audio with Edge-TTS
+        run: |
+          edge-tts --text "${{ github.event.inputs.script }}" \
+          --write-media "public/content/${{ github.event.inputs.story_name }}/audio.mp3"
 
-      - name: 7. Render Video
-        run: npx remotion render "${{ github.event.inputs.story_name }}" public/video.mp4 --props="{\"headline\": \"${{ github.event.inputs.headline }}\"}"
+      - name: 7. Render Video with Remotion
+        # We use the story_name input as the Composition ID
+        run: |
+          npx remotion render "${{ github.event.inputs.story_name }}" public/video.mp4 \
+          --props="{\"headline\": \"${{ github.event.inputs.headline }}\"}"
 
-      - name: 8. Telegram Upload
-        run: curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" -F "video=@public/video.mp4" "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
+      - name: 8. Upload to Telegram
+        if: success()
+        run: |
+          curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -F "video=@public/video.mp4" \
+          "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo"
