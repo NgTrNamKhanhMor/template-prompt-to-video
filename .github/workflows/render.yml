@@ -1,4 +1,3 @@
-
 name: Render Brain Rot Video
 on:
   workflow_dispatch:
@@ -14,16 +13,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-      - name: Install Dependencies
-        run: npm i && pip install edge-tts
       
+      - name: Install Dependencies
+        run: |
+          npm i
+          pip install edge-tts
+      
+      - name: Prepare Public Folder
+        run: mkdir -p public
+
       - name: Generate Free Audio
         run: edge-tts --text "${{ github.event.inputs.script }}" --write-media public/audio.mp3
         
       - name: Render Video
+        # Note: Ensure "Main" matches the ID in your Remotion Root.tsx
         run: npx remotion render Main public/video.mp4 --props='{"headline": "${{ github.event.inputs.headline }}"}'
         
       - name: Upload to Telegram
         run: |
-          curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" -F "video=@public/video.mp4" \
+          curl -v -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+          -F "video=@public/video.mp4" \
           https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendVideo
