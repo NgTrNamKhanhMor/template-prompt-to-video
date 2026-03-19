@@ -40,8 +40,8 @@ jobs:
             "shortTitle": "${{ github.event.inputs.headline }}",
             "elements": [
               {
-                "type": "text",
-                "text": "${{ github.event.inputs.headline }}",
+                "type": "video",
+                "imageName": "subway.mp4",
                 "startMs": 0,
                 "endMs": 5000
               }
